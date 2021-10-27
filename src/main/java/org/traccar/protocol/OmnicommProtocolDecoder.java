@@ -26,6 +26,7 @@ import org.traccar.NetworkMessage;
 import org.traccar.Protocol;
 import org.traccar.helper.BitUtil;
 import org.traccar.helper.Checksum;
+import org.traccar.helper.OmnicommPersistenceUtil;
 import org.traccar.helper.UnitsConverter;
 import org.traccar.model.Position;
 import org.traccar.protobuf.omnicomm.OmnicommMessageOuterClass;
@@ -39,12 +40,15 @@ public class OmnicommProtocolDecoder extends BaseProtocolDecoder {
 
     public OmnicommProtocolDecoder(Protocol protocol) {
         super(protocol);
+        persistenceUtil = new OmnicommPersistenceUtil();
     }
 
     public static final int MSG_IDENTIFICATION = 0x80;
     public static final int MSG_ARCHIVE_INQUIRY = 0x85;
     public static final int MSG_ARCHIVE_DATA = 0x86;
     public static final int MSG_REMOVE_ARCHIVE_INQUIRY = 0x87;
+
+    private final OmnicommPersistenceUtil persistenceUtil;
 
     private OmnicommMessageOuterClass.OmnicommMessage parseProto(
             ByteBuf buf, int length) throws InvalidProtocolBufferException {
@@ -89,8 +93,10 @@ public class OmnicommProtocolDecoder extends BaseProtocolDecoder {
 
         if (type == MSG_IDENTIFICATION) {
 
-            getDeviceSession(channel, remoteAddress, String.valueOf(buf.readUnsignedIntLE()));
-            sendResponse(channel, MSG_ARCHIVE_INQUIRY, 0);
+            DeviceSession session = getDeviceSession(channel, remoteAddress, String.valueOf(buf.readUnsignedIntLE()));
+            Long index_offset = persistenceUtil.getStoredOffsetFor(session.getDeviceId());
+
+            sendResponse(channel, MSG_ARCHIVE_INQUIRY, index_offset);
 
         } else if (type == MSG_ARCHIVE_DATA) {
 
@@ -102,6 +108,8 @@ public class OmnicommProtocolDecoder extends BaseProtocolDecoder {
             long index = buf.readUnsignedIntLE();
             buf.readUnsignedIntLE(); // time
             buf.readUnsignedByte(); // priority
+
+            persistenceUtil.setStoredOffset(deviceSession.getDeviceId(), index);
 
             List<Position> positions = new LinkedList<>();
 
@@ -145,6 +153,8 @@ public class OmnicommProtocolDecoder extends BaseProtocolDecoder {
             }
 
             if (positions.isEmpty()) {
+                persistenceUtil.persistCache();
+
                 sendResponse(channel, MSG_REMOVE_ARCHIVE_INQUIRY, index + 1);
                 return null;
             } else {

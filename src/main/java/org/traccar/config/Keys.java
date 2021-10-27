@@ -1264,4 +1264,12 @@ public final class Keys {
             Collections.singletonList(KeyType.GLOBAL),
             "time,position,speed,course,accuracy,result");
 
+    /**
+     * A path to the omnicomm cache file (used to store the last message index for each device).
+     */
+    public static final ConfigKey<String> OMNICOMM_CACHE_PATH = new ConfigKey<>(
+            "omnicomm.cache",
+            Collections.singletonList(KeyType.GLOBAL),
+            ".omnicomm_cache"
+    );
 }
