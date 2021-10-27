@@ -57,7 +57,12 @@ public class OmnicommPersistenceUtil {
     }
 
     public Long getStoredOffsetFor(Long deviceId) {
-        return cache.getOrDefault(deviceId, 0L);
+        if (cache.containsKey(deviceId)) {
+            return cache.get(deviceId);
+        } else {
+            cache.put(deviceId, 0L);
+            return 0L;
+        }
     }
 
     public void setStoredOffset(Long deviceId, Long offset) {
