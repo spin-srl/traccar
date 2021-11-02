@@ -1,71 +1,62 @@
 package org.traccar.helper;
 
+import jetbrains.exodus.ByteIterable;
+import jetbrains.exodus.bindings.LongBinding;
+import jetbrains.exodus.env.Environment;
+import jetbrains.exodus.env.Environments;
+import jetbrains.exodus.env.Store;
+import jetbrains.exodus.env.StoreConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.traccar.Context;
 import org.traccar.config.Keys;
 
-import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+public final class OmnicommPersistenceUtil {
 
-public class OmnicommPersistenceUtil {
+    private static final String STORE_NAME = "devices";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OmnicommPersistenceUtil.class);
 
-    private final Map<Long, Long> cache;
+    private final Environment environment;
+
+    private final Store store;
 
     public OmnicommPersistenceUtil() {
-        cache = new HashMap<>();
+        LOGGER.debug("Creating Xodus environment");
 
-        // populate the in-memory cache with persisted data
-        try {
-            String path = Context.getConfig().getString(Keys.OMNICOMM_CACHE_PATH);
-            BufferedReader reader = new BufferedReader(new FileReader(path));
+        environment = Environments.newInstance(Context.getConfig().getString(Keys.OMNICOMM_CACHE_PATH));
+        store = environment.computeInTransaction(txn -> {
+            return environment.openStore(STORE_NAME, StoreConfig.WITHOUT_DUPLICATES, txn);
+        });
 
-            reader.lines().forEach((String line) -> {
-                String[] values = line.split(" ");
-
-                cache.put(Long.parseLong(values[0]), Long.parseLong(values[1]));
-            });
-        } catch (Exception exception) {
-            LOGGER.error("Failed to read omnicomm cache data from file", exception);
-        }
-    }
-
-    public void persistCache() {
-        LOGGER.debug("Saving omnicomm cache to file");
-        // store the cache in a text file
-        try {
-            String path = Context.getConfig().getString(Keys.OMNICOMM_CACHE_PATH);
-            BufferedWriter writer = new BufferedWriter(new FileWriter(path));
-
-            cache.forEach((Long device, Long index) -> {
-                try {
-                    writer.write(String.format("%d %d", device, index));
-                } catch (IOException exception) {
-                    String errorMessage = String.format("Failed to write omnicomm index cache element (deviceId=%d, index=%d)", device, index);
-                    LOGGER.error(errorMessage, exception);
-                }
-            });
-
-            writer.flush();
-            LOGGER.debug("Saved omnicomm cache to file successfully");
-        } catch (Exception exception) {
-            LOGGER.error("Failed to persist omnicomm index cache to disk", exception);
-        }
+        LOGGER.debug("Successfully opened store");
     }
 
     public Long getStoredOffsetFor(Long deviceId) {
-        if (cache.containsKey(deviceId)) {
-            return cache.get(deviceId);
-        } else {
-            cache.put(deviceId, 0L);
-            return 0L;
-        }
+        LOGGER.debug(String.format("Retrieving stored offset for device %d", deviceId));
+
+        final ByteIterable key = LongBinding.longToEntry(deviceId);
+
+        return environment.computeInReadonlyTransaction(txn -> {
+            ByteIterable entry = store.get(txn, key);
+
+            if (entry == null) {
+                LOGGER.debug(String.format("No stored offset for device %d", deviceId));
+                return 0L;
+            } else {
+                Long offset = LongBinding.entryToLong(entry);
+                LOGGER.debug(String.format("Returning offset %d for device %d", offset, deviceId));
+
+                return offset;
+            }
+        });
     }
 
     public void setStoredOffset(Long deviceId, Long offset) {
-        cache.put(deviceId, offset);
+        LOGGER.debug(String.format("Storing offset %d for device %d", offset, deviceId));
+
+        environment.executeInTransaction(txn -> {
+            store.put(txn, LongBinding.longToEntry(deviceId), LongBinding.longToEntry(offset));
+        });
     }
 }

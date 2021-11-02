@@ -1270,6 +1270,6 @@ public final class Keys {
     public static final ConfigKey<String> OMNICOMM_CACHE_PATH = new ConfigKey<>(
             "omnicomm.cache",
             Collections.singletonList(KeyType.GLOBAL),
-            ".omnicomm_cache"
+            ".omnicomm_cache/"
     );
 }

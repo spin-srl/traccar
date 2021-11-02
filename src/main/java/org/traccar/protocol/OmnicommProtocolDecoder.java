@@ -20,10 +20,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import org.traccar.BaseProtocolDecoder;
-import org.traccar.DeviceSession;
-import org.traccar.NetworkMessage;
-import org.traccar.Protocol;
+import org.traccar.*;
 import org.traccar.helper.BitUtil;
 import org.traccar.helper.Checksum;
 import org.traccar.helper.OmnicommPersistenceUtil;
@@ -40,7 +37,7 @@ public class OmnicommProtocolDecoder extends BaseProtocolDecoder {
 
     public OmnicommProtocolDecoder(Protocol protocol) {
         super(protocol);
-        persistenceUtil = new OmnicommPersistenceUtil();
+        persistenceUtil = Context.getPersistenceUtil();
     }
 
     public static final int MSG_IDENTIFICATION = 0x80;
@@ -153,7 +150,7 @@ public class OmnicommProtocolDecoder extends BaseProtocolDecoder {
             }
 
             if (positions.isEmpty()) {
-                persistenceUtil.persistCache();
+                // persistenceUtil.persistCache();
 
                 sendResponse(channel, MSG_REMOVE_ARCHIVE_INQUIRY, index + 1);
                 return null;

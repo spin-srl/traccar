@@ -22,38 +22,12 @@ import org.apache.velocity.app.VelocityEngine;
 import org.eclipse.jetty.util.URIUtil;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
-import org.traccar.database.AttributesManager;
-import org.traccar.database.BaseObjectManager;
-import org.traccar.database.CalendarManager;
-import org.traccar.database.CommandsManager;
-import org.traccar.database.ConnectionManager;
-import org.traccar.database.DataManager;
-import org.traccar.database.DeviceManager;
-import org.traccar.database.DriversManager;
-import org.traccar.database.GeofenceManager;
-import org.traccar.database.GroupsManager;
-import org.traccar.database.IdentityManager;
-import org.traccar.database.LdapProvider;
-import org.traccar.database.MailManager;
-import org.traccar.database.MaintenancesManager;
-import org.traccar.database.MediaManager;
-import org.traccar.database.NotificationManager;
-import org.traccar.database.PermissionsManager;
-import org.traccar.database.UsersManager;
+import org.traccar.database.*;
 import org.traccar.geocoder.Geocoder;
 import org.traccar.helper.Log;
+import org.traccar.helper.OmnicommPersistenceUtil;
 import org.traccar.helper.SanitizerModule;
-import org.traccar.model.Attribute;
-import org.traccar.model.BaseModel;
-import org.traccar.model.Calendar;
-import org.traccar.model.Command;
-import org.traccar.model.Device;
-import org.traccar.model.Driver;
-import org.traccar.model.Geofence;
-import org.traccar.model.Group;
-import org.traccar.model.Maintenance;
-import org.traccar.model.Notification;
-import org.traccar.model.User;
+import org.traccar.model.*;
 import org.traccar.notification.EventForwarder;
 import org.traccar.notification.NotificatorManager;
 import org.traccar.reports.model.TripsConfig;
@@ -79,6 +53,12 @@ public final class Context {
 
     public static Config getConfig() {
         return config;
+    }
+
+    private static OmnicommPersistenceUtil persistenceUtil;
+
+    public static OmnicommPersistenceUtil getPersistenceUtil() {
+        return persistenceUtil;
     }
 
     private static ObjectMapper objectMapper;
@@ -277,6 +257,8 @@ public final class Context {
             Log.setupDefaultLogger();
             throw e;
         }
+
+        persistenceUtil = new OmnicommPersistenceUtil();
 
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new SanitizerModule());
