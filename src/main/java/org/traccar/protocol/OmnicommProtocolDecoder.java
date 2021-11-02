@@ -74,7 +74,9 @@ public class OmnicommProtocolDecoder extends BaseProtocolDecoder {
             response.writeIntLE((int) index);
             response.writeShortLE(Checksum.crc16(Checksum.CRC16_CCITT_FALSE,
                     response.nioBuffer(1, response.writerIndex() - 1)));
-            channel.writeAndFlush(new NetworkMessage(response, channel.remoteAddress()));
+
+
+            channel.writeAndFlush(new NetworkMessage(OmnicommProtocolEncoder.encode(response), channel.remoteAddress()));
         }
     }
 
